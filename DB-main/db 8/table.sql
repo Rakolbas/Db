@@ -64,14 +64,79 @@ INSERT INTO Order_Items (order_id, product_id, quantity, price_per_unit) VALUES
 (3, 3, 1, 25000.00),  -- Иван купил Кофемашину
 (4, 1, 1, 70000.00),  -- Алексей купил Смартфон
 (4, 5, 1, 4500.00);   -- и Фен
-SELECT c.full_name, o.order_date  FROM Customers c, Orders o  WHERE c.customer_id = o.customer_id;
-SELECT c.full_name  FROM Customers c  LEFT JOIN Orders o ON c.customer_id = o.customer_id  WHERE o.order_id IS NULL;
-SELECT p.product_name, oi.quantity, oi.price_per_unit  FROM Order_Items oi, Products p  WHERE oi.product_id = p.product_id  AND oi.order_id = 1;
-SELECT full_name FROM Customers WHERE customer_id IN ( SELECT o.customer_id FROM Orders o, Order_Items oi, Products p WHERE o.order_id = oi.order_id AND oi.product_id = p.product_id AND p.product_name = 'Смартфон');
-SELECT product_name, price FROM Products  WHERE price > (SELECT AVG(price) FROM Products);
-SELECT order_id, order_date FROM Orders o WHERE EXISTS ( SELECT 1 FROM Order_Items oi WHERE oi.order_id = o.order_id AND oi.price_per_unit > 100000 );
-SELECT p.product_name FROM Products p LEFT JOIN Order_Items oi ON p.product_id = oi.product_id WHERE oi.order_item_id IS NULL;
-SELECT c.full_name, p.product_name FROM Customers c FULL OUTER JOIN Orders o ON c.customer_id = o.customer_id FULL OUTER JOIN Order_Items oi ON o.order_id = oi.order_id FULL OUTER JOIN Products p ON oi.product_id = p.product_id;
-SELECT full_name FROM Customers WHERE customer_id IN ( SELECT customer_id FROM Orders o, Order_Items oi WHERE o.order_id = oi.order_id AND oi.price_per_unit = (SELECT MAX(price) FROM Products));
-SELECT c.full_name, p.category  FROM Customers c  CROSS JOIN (SELECT DISTINCT category FROM Products) p;
-SELECT c1.full_name AS new_customer, c2.full_name AS recommended_by FROM Customers c1, Customers c2 WHERE c1.recommended_by = c2.customer_id;
+
+SELECT 
+ c.full_name,
+ o.order_date
+FROM customers c
+JOIN orders o on c.customer_id=o.customer_id
+
+SELECT 
+c.full_name,
+o.order_id,
+o.order_date
+FROM customers c
+LEFT JOIN orders o on c.customer_id=o.customer_id
+
+SELECT
+p.product_name,
+oi.quantity,
+oi.price_per_unit
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+WHERE oi.order_id =1
+
+SELECT full_name
+FROM customers
+WHERE customer_id IN (
+    SELECT o.customer_id
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    WHERE p.product_name = 'Смартфон'
+);
+
+SELECT product_name, price
+FROM Products
+WHERE price > (SELECT AVG(price) FROM Products);
+
+SELECT
+    order_id,
+    customer_id,
+    order_date
+FROM Orders o
+WHERE (
+    SELECT SUM(oi.quantity * oi.price_per_unit)
+    FROM Order_Items oi
+    WHERE oi.order_id = o.order_id 
+) > 100000;
+
+SELECT p.product_name
+FROM products p
+LEFT JOIN order_items oi ON p.product_id=oi.product_id
+WHERE oi.order_item_id is NULL
+
+SELECT
+    c.full_name,
+    p.product_name,
+    oi.quantity
+FROM Customers c
+FULL OUTER JOIN Orders o ON c.customer_id = o.customer_id
+FULL OUTER JOIN Order_Items oi ON o.order_id = oi.order_id
+FULL OUTER JOIN Products p ON oi.product_id = p.product_id;
+
+SELECT DISTINCT c.full_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE p.price = (
+    SELECT MAX(price) 
+    FROM products
+);
+SELECT DISTINCT 
+    c.full_name, 
+    p.category
+FROM customers c
+CROSS JOIN products p;
+
